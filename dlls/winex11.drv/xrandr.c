@@ -744,13 +744,15 @@ static void add_remaining_gpus_via_vulkan( struct gdi_gpu **gpus, int *count )
     const struct vulkan_funcs *vulkan_funcs = get_vulkan_driver( WINE_VULKAN_DRIVER_VERSION );
     PFN_vkGetPhysicalDeviceProperties2KHR pvkGetPhysicalDeviceProperties2KHR;
     PFN_vkEnumeratePhysicalDevices pvkEnumeratePhysicalDevices;
+    PFN_vkGetPhysicalDeviceMemoryProperties pvkGetPhysicalDeviceMemoryProperties;
     uint32_t device_count;
     VkPhysicalDevice *vk_physical_devices = NULL;
     VkPhysicalDeviceProperties2 properties2;
+    VkPhysicalDeviceMemoryProperties mem_properties;
     VkInstanceCreateInfo create_info;
     VkPhysicalDeviceIDProperties id;
     VkInstance vk_instance = NULL;
-    INT gpu_idx, device_idx;
+    INT gpu_idx, device_idx, heap_idx;
     INT original_gpu_count = *count;
     struct gdi_gpu *new_gpu;
     BOOL new;
@@ -777,6 +779,7 @@ static void add_remaining_gpus_via_vulkan( struct gdi_gpu **gpus, int *count )
 
     LOAD_VK_FUNC(vkEnumeratePhysicalDevices)
     LOAD_VK_FUNC(vkGetPhysicalDeviceProperties2KHR)
+    LOAD_VK_FUNC(vkGetPhysicalDeviceMemoryProperties)
 #undef LOAD_VK_FUNC
 
     vr = pvkEnumeratePhysicalDevices( vk_instance, &device_count, NULL );
@@ -833,6 +836,16 @@ static void add_remaining_gpus_via_vulkan( struct gdi_gpu **gpus, int *count )
             new_gpu->device_id = properties2.properties.deviceID;
             MultiByteToWideChar( CP_UTF8, 0, properties2.properties.deviceName, -1, new_gpu->name, ARRAY_SIZE(new_gpu->name) );
 
+            pvkGetPhysicalDeviceMemoryProperties( vk_physical_devices[device_idx], &mem_properties );
+            for (heap_idx = 0; heap_idx < mem_properties.memoryHeapCount; heap_idx++)
+            {
+                if (mem_properties.memoryHeaps[heap_idx].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+                {
+                    new_gpu->memory_size = mem_properties.memoryHeaps[heap_idx].size;
+                    break;
+                }
+            }
+
             TRACE("Added a new GPU via Vulkan: %04x:%04x %s\n", new_gpu->vendor_id, new_gpu->device_id, debugstr_w(new_gpu->name));
     }
 
@@ -860,9 +873,11 @@ static BOOL get_gpu_properties_from_vulkan( struct gdi_gpu *gpu, const XRRProvid
     VkResult (*pvkGetRandROutputDisplayEXT)( VkPhysicalDevice, Display *, RROutput, VkDisplayKHR * );
     PFN_vkGetPhysicalDeviceProperties2KHR pvkGetPhysicalDeviceProperties2KHR;
     PFN_vkEnumeratePhysicalDevices pvkEnumeratePhysicalDevices;
-    uint32_t device_count, device_idx, output_idx, i;
+    PFN_vkGetPhysicalDeviceMemoryProperties pvkGetPhysicalDeviceMemoryProperties;
+    uint32_t device_count, device_idx, heap_idx, output_idx, i;
     VkPhysicalDevice *vk_physical_devices = NULL;
     VkPhysicalDeviceProperties2 properties2;
+    VkPhysicalDeviceMemoryProperties mem_properties;
     VkInstanceCreateInfo create_info;
     VkPhysicalDeviceIDProperties id;
     VkInstance vk_instance = NULL;
@@ -895,6 +910,7 @@ static BOOL get_gpu_properties_from_vulkan( struct gdi_gpu *gpu, const XRRProvid
     LOAD_VK_FUNC(vkEnumeratePhysicalDevices)
     LOAD_VK_FUNC(vkGetPhysicalDeviceProperties2KHR)
     LOAD_VK_FUNC(vkGetRandROutputDisplayEXT)
+    LOAD_VK_FUNC(vkGetPhysicalDeviceMemoryProperties)
 #undef LOAD_VK_FUNC
 
     vr = pvkEnumeratePhysicalDevices( vk_instance, &device_count, NULL );
@@ -953,6 +969,16 @@ static BOOL get_gpu_properties_from_vulkan( struct gdi_gpu *gpu, const XRRProvid
                 gpu->device_id = properties2.properties.deviceID;
             }
             MultiByteToWideChar( CP_UTF8, 0, properties2.properties.deviceName, -1, gpu->name, ARRAY_SIZE(gpu->name) );
+
+            pvkGetPhysicalDeviceMemoryProperties( vk_physical_devices[device_idx], &mem_properties );
+            for (heap_idx = 0; heap_idx < mem_properties.memoryHeapCount; heap_idx++)
+            {
+                if (mem_properties.memoryHeaps[heap_idx].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+                {
+                    gpu->memory_size = mem_properties.memoryHeaps[heap_idx].size;
+                    break;
+                }
+            }
             ret = TRUE;
             goto done;
         }

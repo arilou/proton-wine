@@ -1077,8 +1077,7 @@ static void add_gpu( const struct gdi_gpu *gpu, void *param )
     set_reg_value( hkey, bios_stringW, REG_BINARY, desc, size );
     set_reg_value( hkey, chip_typeW, REG_BINARY, desc, size );
     set_reg_value( hkey, dac_typeW, REG_BINARY, ramdacW, sizeof(ramdacW) );
-    unsigned __int64 memory_size = 4294967296LL;
-    set_reg_value( hkey, memory_sizeW, REG_BINARY, &memory_size, sizeof(memory_size) );
+    set_reg_value( hkey, memory_sizeW, REG_BINARY, &gpu->memory_size, sizeof(gpu->memory_size) );
 
     NtClose( hkey );
 
