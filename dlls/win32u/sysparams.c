@@ -926,6 +926,9 @@ static void add_gpu( const struct gdi_gpu *gpu, void *param )
     static const WCHAR chip_typeW[] =
         {'H','a','r','d','w','a','r','e','I','n','f','o','r','m','a','t','i','o','n','.',
          'C','h','i','p','T','y','p','e',0};
+    static const WCHAR memory_sizeW[] =
+        {'H','a','r','d','w','a','r','e','I','n','f','o','r','m','a','t','i','o','n','.',
+         'q','w','M','e','m','o','r','y','S','i','z','e',0};
     static const WCHAR dac_typeW[] =
         {'H','a','r','d','w','a','r','e','I','n','f','o','r','m','a','t','i','o','n','.',
          'D','a','c','T','y','p','e',0};
@@ -1074,6 +1077,7 @@ static void add_gpu( const struct gdi_gpu *gpu, void *param )
     set_reg_value( hkey, bios_stringW, REG_BINARY, desc, size );
     set_reg_value( hkey, chip_typeW, REG_BINARY, desc, size );
     set_reg_value( hkey, dac_typeW, REG_BINARY, ramdacW, sizeof(ramdacW) );
+    set_reg_value( hkey, memory_sizeW, REG_BINARY, &gpu->memory_size, sizeof(gpu->memory_size) );
 
     NtClose( hkey );
 
