@@ -212,11 +212,14 @@ static BOOL X11DRV_desktop_get_gpus( struct x11drv_gpu **new_gpus, int *count )
     gpu = heap_calloc( 1, sizeof(*gpu) );
     if (!gpu) return FALSE;
 
+    lstrcpyW( gpu->name, wine_adapterW );
+#if 0
     if (!get_host_primary_gpu( gpu ))
     {
         WARN( "Failed to get host primary gpu.\n" );
         lstrcpyW( gpu->name, wine_adapterW );
     }
+#endif
 
     *new_gpus = gpu;
     *count = 1;
